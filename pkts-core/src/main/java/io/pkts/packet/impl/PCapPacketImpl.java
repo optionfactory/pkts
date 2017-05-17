@@ -1,11 +1,12 @@
 /**
- * 
+ *
  */
 package io.pkts.packet.impl;
 
 import io.pkts.buffer.Buffer;
 import io.pkts.frame.PcapRecordHeader;
 import io.pkts.framer.EthernetFramer;
+import io.pkts.framer.IPv4TopFramer;
 import io.pkts.framer.SllFramer;
 import io.pkts.packet.MACPacket;
 import io.pkts.packet.PCapPacket;
@@ -19,7 +20,7 @@ import java.util.Date;
 /**
  * TODO: may rename this to a frame instead since this is a little different
  * than a "real" protocol packet.
- * 
+ *
  * @author jonas@jonasborjesson.com
  */
 public final class PCapPacketImpl extends AbstractPacket implements PCapPacket {
@@ -28,9 +29,10 @@ public final class PCapPacketImpl extends AbstractPacket implements PCapPacket {
 
     private static final SllFramer sllFramer = new SllFramer();
     private static final EthernetFramer ethernetFramer = new EthernetFramer();
+    private static final IPv4TopFramer ipv4TopFramer = new IPv4TopFramer();
 
     /**
-     * 
+     *
      */
     public PCapPacketImpl(final PcapRecordHeader header, final Buffer payload) {
         super(Protocol.PCAP, null, payload);
@@ -70,10 +72,10 @@ public final class PCapPacketImpl extends AbstractPacket implements PCapPacket {
         final SimpleDateFormat formatter = new SimpleDateFormat("yyyy.MM.dd HH:mm:ss.SSS");
         final Date date = new Date(getArrivalTime() / 1000);
         sb.append("Arrival Time: ").append(formatter.format(date))
-          .append(" Epoch Time: ").append(this.pcapHeader.getTimeStampSeconds()).append(".")
-          .append(this.pcapHeader.getTimeStampMicroSeconds())
-          .append(" Frame Length: ").append(getTotalLength())
-          .append(" Capture Length: ").append(getCapturedLength());
+                .append(" Epoch Time: ").append(this.pcapHeader.getTimeStampSeconds()).append(".")
+                .append(this.pcapHeader.getTimeStampMicroSeconds())
+                .append(" Frame Length: ").append(getTotalLength())
+                .append(" Capture Length: ").append(getCapturedLength());
 
         return sb.toString();
     }
@@ -101,6 +103,10 @@ public final class PCapPacketImpl extends AbstractPacket implements PCapPacket {
 
         if (sllFramer.accept(payload)) {
             return sllFramer.frame(this, payload);
+        }
+
+        if (ipv4TopFramer.accept(payload)) {
+            return ipv4TopFramer.frame(this, payload);
         }
 
         return ethernetFramer.frame(this, payload);
