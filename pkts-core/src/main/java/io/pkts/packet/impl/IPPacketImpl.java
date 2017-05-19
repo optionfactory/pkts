@@ -1,5 +1,5 @@
 /**
- * 
+ *
  */
 package io.pkts.packet.impl;
 
@@ -9,6 +9,7 @@ import io.pkts.framer.TCPFramer;
 import io.pkts.framer.UDPFramer;
 import io.pkts.packet.IPPacket;
 import io.pkts.packet.MACPacket;
+import io.pkts.packet.PCapPacket;
 import io.pkts.packet.Packet;
 import io.pkts.protocol.Protocol;
 
@@ -24,16 +25,16 @@ public final class IPPacketImpl extends AbstractPacket implements IPPacket {
 
     private static final TCPFramer tcpFramer = new TCPFramer();
 
-    private final MACPacket parent;
+    private final PCapPacket parent;
 
     private final Buffer headers;
 
     private final int options;
 
     /**
-     * 
+     *
      */
-    public IPPacketImpl(final MACPacket parent, final Buffer headers, final int options, final Buffer payload) {
+    public IPPacketImpl(final PCapPacket parent, final Buffer headers, final int options, final Buffer payload) {
         super(Protocol.IPv4, parent, payload);
         assert parent != null;
         assert headers != null;
@@ -49,7 +50,7 @@ public final class IPPacketImpl extends AbstractPacket implements IPPacket {
 
     /**
      * Algorithm adopted from RFC 1071 - Computing the Internet Checksum
-     * 
+     *
      * @return
      */
     private int calculateChecksum() {
@@ -69,10 +70,10 @@ public final class IPPacketImpl extends AbstractPacket implements IPPacket {
 
     /**
      * Get the raw source ip.
-     * 
+     *
      * Note, these are the raw bits and should be treated as such. If you really
      * want to print it, then you should treat it as unsigned
-     * 
+     *
      * @return
      */
     public int getRawSourceIp() {
@@ -80,7 +81,7 @@ public final class IPPacketImpl extends AbstractPacket implements IPPacket {
     }
 
     /**
-     * 
+     *
      * {@inheritDoc}
      */
     @Override
@@ -94,10 +95,10 @@ public final class IPPacketImpl extends AbstractPacket implements IPPacket {
 
     /**
      * Get the raw destination ip.
-     * 
+     *
      * Note, these are the raw bits and should be treated as such. If you really
      * want to print it, then you should treat it as unsigned
-     * 
+     *
      * @return
      */
     public int getRawDestinationIp() {
@@ -105,7 +106,7 @@ public final class IPPacketImpl extends AbstractPacket implements IPPacket {
     }
 
     /**
-     * 
+     *
      * {@inheritDoc}
      */
     @Override
@@ -132,12 +133,12 @@ public final class IPPacketImpl extends AbstractPacket implements IPPacket {
 
     @Override
     public String getSourceMacAddress() {
-        return this.parent.getSourceMacAddress();
+        return this.parent instanceof MACPacket ? ((MACPacket) this.parent).getSourceMacAddress() : null;
     }
 
     @Override
     public String getDestinationMacAddress() {
-        return this.parent.getDestinationMacAddress();
+        return this.parent instanceof MACPacket ? ((MACPacket) this.parent).getDestinationMacAddress(): null;
     }
 
     @Override
@@ -166,7 +167,7 @@ public final class IPPacketImpl extends AbstractPacket implements IPPacket {
      */
     @Override
     public void setSourceMacAddress(final String macAddress) {
-        this.parent.setSourceMacAddress(macAddress);
+        throw new UnsupportedOperationException();
     }
 
     /**
@@ -174,7 +175,7 @@ public final class IPPacketImpl extends AbstractPacket implements IPPacket {
      */
     @Override
     public void setDestinationMacAddress(final String macAddress) {
-        this.parent.setDestinationMacAddress(macAddress);
+        throw new UnsupportedOperationException();
     }
 
     @Override
@@ -224,7 +225,7 @@ public final class IPPacketImpl extends AbstractPacket implements IPPacket {
     /**
      * Very naive initial implementation. Should be changed to do a better job
      * and its performance probably can go up a lot as well.
-     * 
+     *
      * @param startIndex
      * @param address
      */
@@ -254,8 +255,8 @@ public final class IPPacketImpl extends AbstractPacket implements IPPacket {
 
     @Override
     public IPPacket clone() {
-        final MACPacket mac = this.parent.clone();
-        final IPPacket pkt = new IPPacketImpl(mac, this.headers.clone(), this.options, getPayload().clone());
+        final PCapPacket clonedParent = this.parent.clone();
+        final IPPacket pkt = new IPPacketImpl(clonedParent, this.headers.clone(), this.options, getPayload().clone());
         return pkt;
     }
 
@@ -280,19 +281,19 @@ public final class IPPacketImpl extends AbstractPacket implements IPPacket {
         final byte code = this.headers.getByte(9);
         final Protocol protocol = Protocol.valueOf(code);
         switch (protocol) {
-        case UDP:
-            return udpFramer.frame(this, payload);
-        case TCP:
-            return tcpFramer.frame(this, payload);
-        default:
-            throw new RuntimeException("Unknown Protocol. Was this SCTP or something???");
+            case UDP:
+                return udpFramer.frame(this, payload);
+            case TCP:
+                return tcpFramer.frame(this, payload);
+            default:
+                throw new RuntimeException("Unknown Protocol. Was this SCTP or something???");
         }
 
     }
 
     /**
      * The version of this ip frame, will always be 4
-     * 
+     *
      * @return
      */
     @Override
@@ -302,7 +303,7 @@ public final class IPPacketImpl extends AbstractPacket implements IPPacket {
 
     /**
      * The length of the ipv4 headers
-     * 
+     *
      * @return
      */
     @Override
@@ -316,7 +317,7 @@ public final class IPPacketImpl extends AbstractPacket implements IPPacket {
     }
 
     /**
-     * 
+     *
      * {@inheritDoc}
      */
     @Override
@@ -384,10 +385,10 @@ public final class IPPacketImpl extends AbstractPacket implements IPPacket {
     public String toString() {
         final StringBuilder sb = new StringBuilder("IPv4 ");
         sb.append(" Total Length: ").append(getTotalLength())
-          .append(" ID: ").append(getIdentification())
-          .append(" DF: ").append(isDontFragmentSet() ? "Set" : "Not Set")
-          .append(" MF: ").append(isMoreFragmentsSet() ? "Set" : "Not Set")
-          .append(" Fragment Offset: ").append(getFragmentOffset());
+                .append(" ID: ").append(getIdentification())
+                .append(" DF: ").append(isDontFragmentSet() ? "Set" : "Not Set")
+                .append(" MF: ").append(isMoreFragmentsSet() ? "Set" : "Not Set")
+                .append(" Fragment Offset: ").append(getFragmentOffset());
 
         return sb.toString();
     }

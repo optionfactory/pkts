@@ -1,11 +1,12 @@
 /**
- * 
+ *
  */
 package io.pkts.packet.impl;
 
 import io.pkts.buffer.Buffer;
 import io.pkts.frame.PcapRecordHeader;
 import io.pkts.framer.EthernetFramer;
+import io.pkts.framer.IPv4Framer;
 import io.pkts.framer.SllFramer;
 import io.pkts.packet.MACPacket;
 import io.pkts.packet.PCapPacket;
@@ -19,21 +20,24 @@ import java.util.Date;
 /**
  * TODO: may rename this to a frame instead since this is a little different
  * than a "real" protocol packet.
- * 
+ *
  * @author jonas@jonasborjesson.com
  */
 public final class PCapPacketImpl extends AbstractPacket implements PCapPacket {
 
+    private final int dataLinkType;
     private final PcapRecordHeader pcapHeader;
 
     private static final SllFramer sllFramer = new SllFramer();
     private static final EthernetFramer ethernetFramer = new EthernetFramer();
+    private static final IPv4Framer ipv4Framer = new IPv4Framer();
 
     /**
-     * 
+     *
      */
-    public PCapPacketImpl(final PcapRecordHeader header, final Buffer payload) {
+    public PCapPacketImpl(final int dataLinkType, final PcapRecordHeader header, final Buffer payload) {
         super(Protocol.PCAP, null, payload);
+        this.dataLinkType = dataLinkType;
         this.pcapHeader = header;
     }
 
@@ -70,10 +74,10 @@ public final class PCapPacketImpl extends AbstractPacket implements PCapPacket {
         final SimpleDateFormat formatter = new SimpleDateFormat("yyyy.MM.dd HH:mm:ss.SSS");
         final Date date = new Date(getArrivalTime() / 1000);
         sb.append("Arrival Time: ").append(formatter.format(date))
-          .append(" Epoch Time: ").append(this.pcapHeader.getTimeStampSeconds()).append(".")
-          .append(this.pcapHeader.getTimeStampMicroSeconds())
-          .append(" Frame Length: ").append(getTotalLength())
-          .append(" Capture Length: ").append(getCapturedLength());
+                .append(" Epoch Time: ").append(this.pcapHeader.getTimeStampSeconds()).append(".")
+                .append(this.pcapHeader.getTimeStampMicroSeconds())
+                .append(" Frame Length: ").append(getTotalLength())
+                .append(" Capture Length: ").append(getCapturedLength());
 
         return sb.toString();
     }
@@ -98,12 +102,15 @@ public final class PCapPacketImpl extends AbstractPacket implements PCapPacket {
         if (payload == null) {
             return null;
         }
-
-        if (sllFramer.accept(payload)) {
-            return sllFramer.frame(this, payload);
+        switch (dataLinkType) {
+            case LINKTYPE_ETHERNET:
+                return ethernetFramer.frame(this, payload);
+            case LINKTYPE_LINUX_SLL:
+                return sllFramer.frame(this, payload);
+            case LINKTYPE_IPV4:
+                return ipv4Framer.frame(this, payload);
+            default:
+                throw new RuntimeException(String.format("Unsupported data link type %d", dataLinkType));
         }
-
-        return ethernetFramer.frame(this, payload);
     }
-
 }
