@@ -63,7 +63,7 @@ public abstract class SipPacketImpl extends AbstractPacket implements SipPacket 
         return this.parent;
     }
 
-    protected SipMessage getSipMessage() {
+    public SipMessage getSipMessage() {
         return this.msg;
     }
 
