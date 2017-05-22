@@ -108,6 +108,7 @@ public final class PCapPacketImpl extends AbstractPacket implements PCapPacket {
             case LINKTYPE_LINUX_SLL:
                 return sllFramer.frame(this, payload);
             case LINKTYPE_IPV4:
+            case LINKTYPE_RAW_IP:
                 return ipv4Framer.frame(this, payload);
             default:
                 throw new RuntimeException(String.format("Unsupported data link type %d", dataLinkType));

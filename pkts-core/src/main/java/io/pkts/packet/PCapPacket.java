@@ -11,6 +11,7 @@ public interface PCapPacket extends Packet {
     public static final int LINKTYPE_ETHERNET = 1;
     public static final int LINKTYPE_LINUX_SLL = 113;
     public static final int LINKTYPE_IPV4 = 228;
+    public static final int LINKTYPE_RAW_IP = 101; // IPv4 or IPv6, depending on "version" IP header field
 
     /**
      * Get the total length of the data. Not all of that data may have been
