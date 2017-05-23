@@ -58,7 +58,7 @@ public final class TcpPacketImpl extends TransportPacketImpl implements TCPPacke
     @Override
     public long getSequenceNumber() {
         return  0l 
-                | this.headers.getUnsignedByte(4) << 24 
+                | ((long) this.headers.getUnsignedByte(4)) << 24 
                 | this.headers.getUnsignedByte(5) << 16 
                 | this.headers.getUnsignedByte(6) << 8 
                 | this.headers.getUnsignedByte(7);
