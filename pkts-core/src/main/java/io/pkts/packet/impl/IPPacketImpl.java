@@ -167,7 +167,12 @@ public final class IPPacketImpl extends AbstractPacket implements IPPacket {
      */
     @Override
     public void setSourceMacAddress(final String macAddress) {
-        throw new UnsupportedOperationException();
+        if (this.parent instanceof MACPacket) {
+            final MACPacket macPacket = (MACPacket) this.parent;
+            macPacket.setSourceMacAddress(macAddress);
+            return;
+        }
+        throw new UnsupportedOperationException("Cannot set source mac address if parent packet is not MACPacket");
     }
 
     /**
@@ -175,7 +180,12 @@ public final class IPPacketImpl extends AbstractPacket implements IPPacket {
      */
     @Override
     public void setDestinationMacAddress(final String macAddress) {
-        throw new UnsupportedOperationException();
+        if (this.parent instanceof MACPacket) {
+            final MACPacket macPacket = (MACPacket) this.parent;
+            macPacket.setDestinationMacAddress(macAddress);
+            return;
+        }
+        throw new UnsupportedOperationException("Cannot set destination mac address if parent packet is not MACPacket");
     }
 
     @Override
