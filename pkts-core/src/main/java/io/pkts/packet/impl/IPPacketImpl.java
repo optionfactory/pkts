@@ -138,7 +138,7 @@ public final class IPPacketImpl extends AbstractPacket implements IPPacket {
 
     @Override
     public String getDestinationMacAddress() {
-        return this.parent instanceof MACPacket ? ((MACPacket) this.parent).getDestinationMacAddress(): null;
+        return this.parent instanceof MACPacket ? ((MACPacket) this.parent).getDestinationMacAddress() : null;
     }
 
     @Override
@@ -299,6 +299,15 @@ public final class IPPacketImpl extends AbstractPacket implements IPPacket {
                 throw new RuntimeException("Unknown Protocol. Was this SCTP or something???");
         }
 
+    }
+
+    @Override
+    public Buffer getPayload() {
+        final Buffer payload = super.getPayload();
+        if (payload != null) {
+            return payload.slice(0, getTotalIPLength() - getHeaderLength()*4);
+        }
+        return null;
     }
 
     /**

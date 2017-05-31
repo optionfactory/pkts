@@ -90,6 +90,9 @@ public class IPv4Framer implements Framer<PCapPacket> {
             // final int options = headers.readInt();
             options = payload.readInt();
         }
+        if (length > 6) {
+            throw new UnsupportedOperationException("this nice library does not parse more than exactly one option word");
+        }
 
         final Buffer data = payload.slice();
         return new IPPacketImpl(parent, headers, options, data);
