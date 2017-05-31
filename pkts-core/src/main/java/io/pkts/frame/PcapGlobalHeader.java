@@ -6,52 +6,75 @@ import io.pkts.protocol.Protocol;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.ByteOrder;
+import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
- * 
+ *
  * @author jonas@jonasborjesson.com
  */
 public final class PcapGlobalHeader {
 
+    public enum LinkLayerType {
+        ETHERNET(1, Protocol.ETHERNET_II), LINUX_SLL(113, Protocol.SLL), IPV4(228, Protocol.IPv4), RAW_IP(101, Protocol.IPv4);
+
+        public final int value;
+        public final Protocol protocol; // TODO: handle the fact that RAW_IP can contain either IPv4 or IPv6 
+
+        private LinkLayerType(int value, Protocol protocol) {
+            this.value = value;
+            this.protocol = protocol;
+        }
+
+        public static Optional<LinkLayerType> fromValue(int dataLinkType) {
+            return Stream.of(LinkLayerType.values()).filter(e -> dataLinkType == e.value).findFirst();
+        }
+
+        public static List<LinkLayerType> fromProtocol(Protocol protocol) {
+            return Stream.of(LinkLayerType.values()).filter(e -> protocol == e.protocol).collect(Collectors.toList());
+        }
+    }
     /**
      * See http://wiki.wireshark.org/Development/LibpcapFileFormat
      */
-    public static final byte[] MAGIC_BIG_ENDIAN = { (byte) 0xa1, (byte) 0xb2, (byte) 0xc3, (byte) 0xd4 };
+    public static final byte[] MAGIC_BIG_ENDIAN = {(byte) 0xa1, (byte) 0xb2, (byte) 0xc3, (byte) 0xd4};
 
     /**
      * See http://wiki.wireshark.org/Development/LibpcapFileFormat
      */
-    public static final byte[] MAGIC_LITTLE_ENDIAN = { (byte) 0xd4, (byte) 0xc3, (byte) 0xb2, (byte) 0xa1 };
+    public static final byte[] MAGIC_LITTLE_ENDIAN = {(byte) 0xd4, (byte) 0xc3, (byte) 0xb2, (byte) 0xa1};
 
     /**
      * New pcap format
      */
-    public static final byte[] MAGIC_NGPCAP = { (byte) 0x0A, (byte) 0x0D, (byte) 0x0D, (byte) 0x0A };
+    public static final byte[] MAGIC_NGPCAP = {(byte) 0x0A, (byte) 0x0D, (byte) 0x0D, (byte) 0x0A};
 
     /**
      * Found the following at:
      * http://anonsvn.wireshark.org/wireshark/trunk/wiretap/libpcap.h
-     * 
+     *
      * PCAP_NSEC_MAGIC is for Ulf Lamping's modified "libpcap" format, which
      * uses the same common file format as PCAP_MAGIC, but the timestamps are
      * saved in nanosecond resolution instead of microseconds.
      */
-    public static final byte[] MAGIC_NSEC = { (byte) 0xa1, (byte) 0xb2, (byte) 0x3c, (byte) 0x4d };
-    public static final byte[] MAGIC_NSEC_SWAPPED = { (byte) 0x4d, (byte) 0x3c, (byte) 0xb2, (byte) 0xa2 };
+    public static final byte[] MAGIC_NSEC = {(byte) 0xa1, (byte) 0xb2, (byte) 0x3c, (byte) 0x4d};
+    public static final byte[] MAGIC_NSEC_SWAPPED = {(byte) 0x4d, (byte) 0x3c, (byte) 0xb2, (byte) 0xa2};
 
     /**
      * Found the following at:
      * http://anonsvn.wireshark.org/wireshark/trunk/wiretap/libpcap.h
-     * 
-     * 
+     *
+     *
      * PCAP_MODIFIED_MAGIC is for Alexey Kuznetsov's modified "libpcap" format,
      * as generated on Linux systems that have a "libpcap" with his patches, at
      * http://ftp.sunet.se/pub/os/Linux/ip-routing/lbl-tools/
-     * 
+     *
      * applied; PCAP_SWAPPED_MODIFIED_MAGIC is the byte-swapped version.
      */
-    public static final byte[] MAGIC_MODIFIED = { (byte) 0xa1, (byte) 0xb2, (byte) 0xcd, (byte) 0x34 };
-    public static final byte[] MAGIC_MODIFIED_SWAPPED = { (byte) 0x34, (byte) 0xcd, (byte) 0xb2, (byte) 0xa1 };
+    public static final byte[] MAGIC_MODIFIED = {(byte) 0xa1, (byte) 0xb2, (byte) 0xcd, (byte) 0x34};
+    public static final byte[] MAGIC_MODIFIED_SWAPPED = {(byte) 0x34, (byte) 0xcd, (byte) 0xb2, (byte) 0xa1};
 
     private final ByteOrder byteOrder;
     private final byte[] body;
@@ -59,14 +82,22 @@ public final class PcapGlobalHeader {
     /**
      * Factory method for creating a default {@link PcapGlobalHeader}. Mainly
      * used for when writing out new pcaps to a stream.
-     * 
+     *
      * @return
      */
     public static PcapGlobalHeader createDefaultHeader() {
-        return createDefaultHeader(Protocol.ETHERNET_II);
+        return createDefaultHeader(LinkLayerType.ETHERNET);
     }
 
     public static PcapGlobalHeader createDefaultHeader(final Protocol protocol) {
+        final LinkLayerType linkLayerType = LinkLayerType.fromProtocol(Optional.ofNullable(protocol).orElse(Protocol.ETHERNET_II))
+                .stream()
+                .findFirst()
+                .orElseThrow(() -> new IllegalArgumentException("Cannot determine a linkType for protocol " + protocol));
+        return createDefaultHeader(linkLayerType);
+    }
+
+    public static PcapGlobalHeader createDefaultHeader(final LinkLayerType linkLayerType) {
         final byte[] body = new byte[20];
 
         // major version number
@@ -97,21 +128,12 @@ public final class PcapGlobalHeader {
 
         // data link type - default is ethernet
         // See http://www.tcpdump.org/linktypes.html for a complete list
-        if (protocol == null || protocol == Protocol.ETHERNET_II) {
-            body[16] = (byte) 0x01;
-            body[17] = (byte) 0x00;
-            body[18] = (byte) 0x00;
-            body[19] = (byte) 0x00;
-        } else if (protocol == null || protocol == Protocol.SLL) {
-            body[16] = (byte) 0x71;
-            body[17] = (byte) 0x00;
-            body[18] = (byte) 0x00;
-            body[19] = (byte) 0x00;
-        } else {
-            throw new IllegalArgumentException("Unknown protocol \"" + protocol
-                    + "\". Not sure how to construct the global header. You probably need to add some code yourself");
-        }
-
+        
+        body[16] = (byte) (linkLayerType.value & 0xFF);
+        body[17] = (byte) ((linkLayerType.value >> 8) & 0xFF);
+        body[18] = (byte) ((linkLayerType.value >> 16) & 0xFF);
+        body[19] = (byte) ((linkLayerType.value >> 24) & 0xFF);
+        
         return new PcapGlobalHeader(ByteOrder.LITTLE_ENDIAN, body);
 
     }
@@ -129,7 +151,7 @@ public final class PcapGlobalHeader {
 
     /**
      * Major version is currently 2
-     * 
+     *
      * @return
      */
     public int getMajorVersion() {
@@ -138,7 +160,7 @@ public final class PcapGlobalHeader {
 
     /**
      * Minor version is currently 4
-     * 
+     *
      * @return
      */
     public int getMinorVersion() {
@@ -148,7 +170,7 @@ public final class PcapGlobalHeader {
     /**
      * in theory, the accuracy of time stamps in the capture; in practice, all
      * tools set it to 0
-     * 
+     *
      * @return
      */
     public int getTimeAccuracy() {
@@ -162,7 +184,7 @@ public final class PcapGlobalHeader {
      * European time (Amsterdam, Berlin, ...) which is GMT + 1:00, thiszone must
      * be -3600. In practice, time stamps are always in GMT, so thiszone is
      * always 0.
-     * 
+     *
      * @return
      */
     public long getTimeZoneCorrection() {
@@ -172,7 +194,7 @@ public final class PcapGlobalHeader {
     /**
      * the "snapshot length" for the capture (typically 65535 or even more, but
      * might be limited by the user)
-     * 
+     *
      * @return
      */
     public long getSnapLength() {
@@ -228,7 +250,7 @@ public final class PcapGlobalHeader {
 
     /**
      * Will write this header to the output stream.
-     * 
+     *
      * @param out
      */
     public void write(final OutputStream out) throws IOException {
@@ -244,10 +266,10 @@ public final class PcapGlobalHeader {
     public String toString() {
         final StringBuilder sb = new StringBuilder();
         sb.append("Version: ").append(getMajorVersion()).append(".").append(getMinorVersion()).append("\n")
-          .append("TimeZone: ").append(getTimeZoneCorrection()).append("\n")
-          .append("Accuracy: ").append(getTimeAccuracy()).append("\n")
-          .append("SnapLength: ").append(getSnapLength()).append("\n")
-          .append("Network: ").append(getDataLinkType()).append("\n");
+                .append("TimeZone: ").append(getTimeZoneCorrection()).append("\n")
+                .append("Accuracy: ").append(getTimeAccuracy()).append("\n")
+                .append("SnapLength: ").append(getSnapLength()).append("\n")
+                .append("Network: ").append(getDataLinkType()).append("\n");
 
         return sb.toString();
     }

@@ -150,5 +150,9 @@ public class Pcap {
     public void close() {
         // TODO
     }
+    
+    public PcapGlobalHeader getGlobalHeader() {
+        return this.header;
+    }
 
 }
