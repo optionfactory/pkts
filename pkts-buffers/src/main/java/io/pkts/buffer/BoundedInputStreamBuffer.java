@@ -202,11 +202,7 @@ public class BoundedInputStreamBuffer extends AbstractBuffer {
             final int spaceLeft = getAvailableLocalWritingSpace();
             final int readAtMost = Math.min(length - total, spaceLeft);
 
-            try {
-                actual = this.is.read(this.buffer, localIndex, readAtMost);
-            } catch (final Exception e) {
-                e.printStackTrace();
-            }
+            actual = this.is.read(this.buffer, localIndex, readAtMost);
             if (actual > 0) {
                 this.upperBoundary += actual;
                 this.writerIndex = this.upperBoundary;
