@@ -305,7 +305,7 @@ public final class IPPacketImpl extends AbstractPacket implements IPPacket {
     public Buffer getPayload() {
         final Buffer payload = super.getPayload();
         if (payload != null) {
-            return payload.slice(0, getTotalIPLength() - getHeaderLength()*4);
+            return payload.slice(0, Math.min(getTotalIPLength() - getHeaderLength()*4, payload.capacity()));
         }
         return null;
     }
