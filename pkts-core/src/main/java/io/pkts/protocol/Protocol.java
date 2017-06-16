@@ -26,7 +26,7 @@ public enum Protocol {
      * E.g., if you "click" on the Pcap Frame it will have a field called
      * "protocols in frame" and will display something like
      * "eth:ip:udp:sip:sdp", this function will return a short name like that.
-     * 
+     *
      * @return
      */
     public String getName() {
@@ -43,7 +43,7 @@ public enum Protocol {
      * ISO stack. This is mainly used by the {@link FramerManager} when trying
      * to determine which {@link Framer}s it should consult when trying to
      * figure out which framer to use.
-     * 
+     *
      * @return
      */
     public Layer getProtocolLayer() {
@@ -53,9 +53,9 @@ public enum Protocol {
     /**
      * Get a protocol based on it's defined byte code. This is only true for
      * some protocols
-     * 
+     *
      * For a full list: http://en.wikipedia.org/wiki/List_of_IP_protocol_numbers
-     * 
+     *
      * @param code
      * @return
      */
@@ -72,8 +72,20 @@ public enum Protocol {
             case (byte) 0x84:
                 return SCTP;
             default:
-                return null;
+                throw new UnrecognizedIpProtocol(String.format("Unrecognized protocol with code %d", code));
         }
+    }
+
+    public static class UnrecognizedIpProtocol extends RuntimeException {
+
+        public UnrecognizedIpProtocol(String message) {
+            super(message);
+        }
+
+        public UnrecognizedIpProtocol(String message, Throwable cause) {
+            super(message, cause);
+        }
+
     }
 
     public static enum Layer {
