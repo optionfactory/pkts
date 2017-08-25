@@ -6,6 +6,7 @@ package io.pkts.sdp;
 import io.pkts.buffer.Buffer;
 
 import java.util.Collection;
+import javax.sdp.SessionDescription;
 
 /**
  * Represents a Session Description Protocol as defined by RFC 2327.
@@ -44,4 +45,5 @@ public interface SDP {
     @Override
     String toString();
 
+    SessionDescription getSessionDescription();
 }

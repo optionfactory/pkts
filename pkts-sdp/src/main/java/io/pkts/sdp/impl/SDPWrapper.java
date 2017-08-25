@@ -90,4 +90,8 @@ public class SDPWrapper implements SDP {
         return this.sdp.toString();
     }
 
+    @Override
+    public SessionDescription getSessionDescription() {
+        return sdp;
+    }
 }
